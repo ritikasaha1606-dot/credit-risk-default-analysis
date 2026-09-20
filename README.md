@@ -39,7 +39,7 @@ then converted coefficients to odds ratios for interpretability.
   roughly 14x for Grade D, 20x for Grade E, and 27x for Grade F, all 
   statistically significant (p < 0.001).
 - Grade G showed a directionally similar but highly unstable estimate, 
-  driven by a small sample size (n=60) — the exact magnitude shouldn't be 
+  driven by a small sample size (n=60), the exact magnitude shouldn't be 
   treated as precise, though the direction (highest risk) is consistent 
   with the overall trend.
 - Higher income was associated with modestly lower default odds; larger 
