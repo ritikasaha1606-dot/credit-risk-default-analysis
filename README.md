@@ -7,16 +7,16 @@ loan records.
 ## Tools Used
 - SQL (SQLite) — data cleaning, outlier removal, default rate aggregation by segment
 - Python (statsmodels) — logistic regression modeling and interpretation
-- Python (scikit-learn) — coming in Phase 2
+- Python (scikit-learn)
 
 ## Status
-**Phase 1 complete:** SQL cleaning and aggregation, statsmodels logistic 
+**Phase 1:** SQL cleaning and aggregation, statsmodels logistic 
 regression with odds ratio interpretation.
-**Phase 2 (in progress):** scikit-learn predictive model with expanded 
+**Phase 2:** scikit-learn predictive model with expanded 
 features, train/test split, and accuracy evaluation.
 
 ## Dataset
-Credit Risk Dataset, sourced from [Kaggle](add-your-link-here). 
+Credit Risk Dataset, sourced from [[Kaggle]](https://www.kaggle.com/datasets/laotse/credit-risk-dataset). 
 Not redistributed here due to licensing; download directly from the 
 source to reproduce this analysis.
 
