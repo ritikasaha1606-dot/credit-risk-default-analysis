@@ -1,69 +1,71 @@
-# Credit Risk Default Analysis
+# Credit Risk Default Analysis and Copilot
 
-A logistic regression analysis identifying which borrower and loan 
-characteristics predict loan default, using a dataset of ~31,000 
-loan records.
+An end-to-end credit risk project: SQL cleaning and aggregation, logistic regression for inference (statsmodels) and prediction (scikit-learn), and a Streamlit app with an LLM copilot that answers questions by calling my analysis functions.
 
-## Tools Used
-- SQL (SQLite) — data cleaning, outlier removal, default rate aggregation by segment
-- Python (statsmodels) — logistic regression modeling and interpretation
-- Python (scikit-learn)
+**Live app:** (https://credit-risk-default-analysis-klxhzf8ttfysvslcqws2gg.streamlit.app/)
 
-## Status
-**Phase 1:** SQL cleaning and aggregation, statsmodels logistic 
-regression with odds ratio interpretation.
-**Phase 2:** scikit-learn predictive model with expanded 
-features, train/test split, and accuracy evaluation.
-
-## Dataset
-Credit Risk Dataset, sourced from [[Kaggle]](https://www.kaggle.com/datasets/laotse/credit-risk-dataset). 
-Not redistributed here due to licensing; download directly from the 
-source to reproduce this analysis.
+![Explore tab](screenshots/explore.png)
+![Score a borrower tab](screenshots/score.png)
 
 ## Business Problem
-Lenders need to understand which borrower and loan characteristics are 
-most predictive of default, so risk-based pricing and approval decisions 
-can be made with statistical grounding rather than intuition alone.
+Lenders need to know which borrower and loan characteristics predict default, so pricing and approval decisions rest on evidence. This project analyzes 32,581 loan records to find those drivers and make them explorable.
+
+## Dataset
+Credit Risk Dataset on Kaggle ([link]), licensed CC0. 12 columns covering borrower profile, loan details, and a default flag (`loan_status`).
+
+## Tools
+- **SQL (SQLite):** cleaning, outlier removal, default rate by segment
+- **Python (pandas, statsmodels, scikit-learn):** modeling and evaluation
+- **Streamlit:** interactive app
+- **Gemini API:** natural language copilot using tool calling
 
 ## Method
-Using SQL, I cleaned the dataset by removing data entry errors (unrealistic 
-ages above 100, employment lengths exceeding plausible bounds relative to 
-age), then calculated default rates by loan grade, loan intent, and home 
-ownership status. In Python, I fit a logistic regression model (statsmodels) 
-predicting loan default from loan grade, borrower income, and loan amount, 
-then converted coefficients to odds ratios for interpretability.
+1. **Cleaning (SQL):** removed 5 rows with ages above 100, and rows where age minus employment length was under 16 (impossible work histories). 30,941 rows remained.
+2. **Segment analysis (SQL):** default rate by loan grade, loan intent, and home ownership.
+3. **Phase 1, statsmodels:** logistic regression on grade, income, and loan amount, with odds ratios.
+4. **Phase 2, scikit-learn:** all features one-hot encoded, missing interest rates filled with the median, 80/20 train/test split, standardized features, logistic regression.
+5. **App:** three tabs (Explore, Score a borrower, Ask the copilot).
 
 ## Key Findings
-- Default risk increases sharply and consistently with loan grade: Grade B 
-  borrowers are about 1.6x more likely to default than Grade A, rising to 
-  roughly 14x for Grade D, 20x for Grade E, and 27x for Grade F, all 
-  statistically significant (p < 0.001).
-- Grade G showed a directionally similar but highly unstable estimate, 
-  driven by a small sample size (n=60), the exact magnitude shouldn't be 
-  treated as precise, though the direction (highest risk) is consistent 
-  with the overall trend.
-- Higher income was associated with modestly lower default odds; larger 
-  loan amounts were associated with modestly higher default odds, both 
-  holding grade constant.
-- The loan grading system appears well-calibrated: default rates from raw 
-  SQL aggregation increased monotonically from Grade A through G, and this 
-  held up even after controlling for income and loan amount in the 
-  regression.
+- Default rate climbs with every grade: A 9.5%, B 15.9%, C 20.2%, D 59.1%, E 64.8%, F 70.1%, G 98.3%.
+- Renters default far more often than owners (31.0% vs 7.0%). Borrowers with a past default on file default at 37.6% vs 18.1% without.
+- Odds of default vs grade A (controlling for income and loan amount): B 1.6x, C 2.2x, D 14x, E 20x, F 27x. Grade G is too unstable to quote (only 60 loans).
+- Higher income lowers default odds, and larger loans raise them.
 
-## Recommendation
-The strong, monotonic relationship between loan grade and default risk 
-suggests the current grading system is a reliable signal for pricing and 
-underwriting decisions. I'd recommend maintaining grade-based risk pricing 
-as the primary lever, while flagging Grade G as an area needing more data 
-before its risk premium is finalized, given the small sample size 
-underlying that estimate.
+## Model Performance (test set, 6,189 loans)
+| Metric | Value |
+|---|---|
+| Accuracy | 86.8% |
+| Baseline (always predict no default) | about 78% |
+| Precision, default class | 0.78 |
+| Recall, default class | 0.55 |
+
+The model beats the baseline, but it catches only about 55% of real defaults (748 caught, 609 missed). In lending, missed defaults are the costly error, so a lender would likely lower the decision threshold to trade precision for recall.
+
+## The Copilot
+Questions typed in the app go to Gemini, which chooses from three tools I wrote: `default_rate_by`, `score_borrower`, and `top_risk_factors`. My code runs the tool and returns the result, and the model summarizes it. Guardrails: a whitelist of allowed columns, input validation on borrower fields, a cap of 5 tool rounds per question, and a rule that the model may only state numbers returned by a tool.
+
+## Limitations
+- Public dataset and a simple linear model, not a production credit model.
+- Grade G has only 60 loans, so its estimates are unreliable.
+- Missing interest rates were filled with the median before the train/test split, which is a minor form of leakage.
+- Scikit-learn coefficients are on standardized features, so they are not comparable to the raw-unit statsmodels coefficients.
+- The copilot depends on a third-party API and may be slow or rate limited. The free host also sleeps when idle, so the first load can take a few seconds.
+
+## Run Locally
+```
+pip install -r requirements.txt
+streamlit run app.py
+```
+Create `.streamlit/secrets.toml` with `GEMINI_API_KEY = "your-key"` to enable the copilot tab.
 
 ## Files
-- `credit_risk_analysis.ipynb` — full notebook (SQL cleaning/aggregation, 
-  statsmodels logistic regression)
+- `credit_risk_analysis.ipynb`: full analysis (SQL, statsmodels, scikit-learn)
+- `app.py`, `tools.py`, `agent.py`: Streamlit app, analysis tools, agent loop
+- `model.pkl`, `scaler.pkl`, `columns.pkl`: saved model artifacts
+- `credit_risk.db`: cleaned SQLite database
 
 ## Next Steps
-- Expand model with additional features (home ownership, loan intent, 
-  employment length, credit history length) using scikit-learn
-- Train/test split and accuracy evaluation
-- Confusion matrix and precision/recall analysis
+- Tune the decision threshold and try class weights or a tree-based model
+- Fit the imputer on training data only
+- Add confidence intervals for small segments
