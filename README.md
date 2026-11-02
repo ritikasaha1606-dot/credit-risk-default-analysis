@@ -2,7 +2,7 @@
 
 An end-to-end credit risk project: SQL cleaning and aggregation, logistic regression for inference (statsmodels) and prediction (scikit-learn), and a Streamlit app with an LLM copilot that answers questions by calling my analysis functions.
 
-**Live app:** (https://credit-risk-default-analysis-klxhzf8ttfysvslcqws2gg.streamlit.app/)
+**Live app:** https://credit-risk-default-analysis-klxhzf8ttfysvslcqws2gg.streamlit.app/
 
 ![Explore tab](screenshots/explore.png)
 ![Score a borrower tab](screenshots/score.png)
