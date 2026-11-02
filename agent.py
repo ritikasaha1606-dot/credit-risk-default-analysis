@@ -2,15 +2,27 @@ import time
 import streamlit as st
 from google import genai
 from google.genai import types
-from tools import default_rate_by, score_borrower, top_risk_factors
+from tools import default_rate_by, score_borrower, top_risk_factors, search_docs
 
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 MODEL = "gemini-3.8-flash"
 TOOLS = {'default_rate_by': default_rate_by,
          'score_borrower': score_borrower,
-         'top_risk_factors': top_risk_factors}
+         'top_risk_factors': top_risk_factors,
+         'search_docs': search_docs}
 
-SYSTEM_PROMPT = """..."""   # the prompt from step 6
+SYSTEM_PROMPT = """You are a credit risk analyst assistant for a portfolio project.
+Rules:
+1. Use only the provided tools. Only state numbers that appear in a tool result.
+2. If a question cannot be answered with the tools, say so. Do not guess.
+3. If borrower details are missing, ask for them. Never invent values.
+4. Never present a score as a real lending decision.
+5. Use search_docs for definitions, model explanations, and limitations.
+   After any statement based on documents, add (source: file, section).
+6. If search_docs returns nothing relevant, say you do not have that information.
+7. Use the numeric tools for default rates and borrower scores. Model performance
+   figures (accuracy, recall) may be quoted from the documents.
+8. Keep answers to 3 sentences."""   # the prompt from step 6
 
 def call_model(contents, config, tries=4):
     for i in range(tries):

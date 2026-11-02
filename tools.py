@@ -1,6 +1,9 @@
 import sqlite3, joblib
 import numpy as np
 import pandas as pd
+import glob, os
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 model = joblib.load('model.pkl')
 scaler = joblib.load('scaler.pkl')
@@ -128,3 +131,42 @@ def top_risk_factors(n: int = 10) -> list:
                         'odds_ratio_per_1SD': np.exp(coefs)})
     out = out.reindex(out['coefficient'].abs().sort_values(ascending=False).index)
     return out.head(n).round(3).reset_index(names='feature').to_dict('records')
+
+def _load_chunks():
+    folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs")
+    chunks = []
+    for path in sorted(glob.glob(os.path.join(folder, "*.md"))):
+        text = open(path, encoding="utf-8").read()
+        for part in text.split("\n## "):
+            part = part.strip()
+            if len(part) > 40:
+                title = part.split("\n")[0].lstrip("# ").strip()
+                chunks.append({"source": os.path.basename(path),
+                               "section": title, "text": part})
+    return chunks
+
+CHUNKS = _load_chunks()
+_vec = TfidfVectorizer(stop_words="english", ngram_range=(1, 2))
+_matrix = _vec.fit_transform([c["text"] for c in CHUNKS])
+
+def search_docs(query: str, k: int = 3) -> list:
+    """Searches the project documentation (data dictionary, model card,
+    credit risk concepts) and returns the most relevant passages.
+
+    Use for definitions of columns, explanations of the model, its
+    limitations, and credit risk terms. Do not use for numbers such as
+    default rates or borrower scores, which have their own tools.
+
+    Args:
+        query: What to look for, in plain words.
+        k: How many passages to return. Default 3.
+
+    Returns:
+        A list of passages with source file, section, and text. Empty if
+        nothing relevant was found.
+    """
+    scores = cosine_similarity(_vec.transform([query]), _matrix)[0]
+    top = scores.argsort()[::-1][:k]
+    return [{"source": CHUNKS[i]["source"], "section": CHUNKS[i]["section"],
+             "text": CHUNKS[i]["text"][:900], "score": round(float(scores[i]), 3)}
+            for i in top if scores[i] > 0.05]
