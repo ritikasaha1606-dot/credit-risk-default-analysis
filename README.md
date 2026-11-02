@@ -12,7 +12,7 @@ An end-to-end credit risk project: SQL cleaning and aggregation, logistic regres
 Lenders need to know which borrower and loan characteristics predict default, so pricing and approval decisions rest on evidence. This project analyzes 32,581 loan records to find those drivers and make them explorable.
 
 ## Dataset
-Credit Risk Dataset on Kaggle ([link]), licensed CC0. 12 columns covering borrower profile, loan details, and a default flag (`loan_status`).
+Credit Risk Dataset on Kaggle (https://www.kaggle.com/datasets/laotse/credit-risk-dataset), licensed CC0. 12 columns covering borrower profile, loan details, and a default flag (`loan_status`).
 
 ## Tools
 - **SQL (SQLite):** cleaning, outlier removal, default rate by segment
