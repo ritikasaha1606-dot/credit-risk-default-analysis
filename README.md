@@ -6,6 +6,7 @@ An end-to-end credit risk project: SQL cleaning and aggregation, logistic regres
 
 ![Explore tab](screenshots/explore.png)
 ![Score a borrower tab](screenshots/score.png)
+![Ask the copilot tab](screenshots/copilot.png)
 
 ## Business Problem
 Lenders need to know which borrower and loan characteristics predict default, so pricing and approval decisions rest on evidence. This project analyzes 32,581 loan records to find those drivers and make them explorable.
@@ -18,6 +19,7 @@ Credit Risk Dataset on Kaggle ([link]), licensed CC0. 12 columns covering borrow
 - **Python (pandas, statsmodels, scikit-learn):** modeling and evaluation
 - **Streamlit:** interactive app
 - **Gemini API:** natural language copilot using tool calling
+- **TF-IDF retrieval (scikit-learn):** search over project documentation
 
 ## Method
 1. **Cleaning (SQL):** removed 5 rows with ages above 100, and rows where age minus employment length was under 16 (impossible work histories). 30,941 rows remained.
@@ -43,13 +45,24 @@ Credit Risk Dataset on Kaggle ([link]), licensed CC0. 12 columns covering borrow
 The model beats the baseline, but it catches only about 55% of real defaults (748 caught, 609 missed). In lending, missed defaults are the costly error, so a lender would likely lower the decision threshold to trade precision for recall.
 
 ## The Copilot
-Questions typed in the app go to Gemini, which chooses from three tools I wrote: `default_rate_by`, `score_borrower`, and `top_risk_factors`. My code runs the tool and returns the result, and the model summarizes it. Guardrails: a whitelist of allowed columns, input validation on borrower fields, a cap of 5 tool rounds per question, and a rule that the model may only state numbers returned by a tool.
+Questions typed in the app go to Gemini, which chooses from four tools:
+- `default_rate_by`: default rate and loan count for a chosen category
+- `score_borrower`: predicted default probability for one borrower
+- `top_risk_factors`: the features with the largest effect on predicted risk
+- `search_docs`: retrieves passages from the project documentation
+
+My code runs the chosen tool and returns the result, and the model summarizes it.
+
+**Document retrieval (RAG).** The `docs/` folder holds a data dictionary, a model card, and a credit risk concepts file. They are split into sections and indexed with TF-IDF. For a question about definitions, model limitations, or credit risk terms, the copilot retrieves the closest passages and cites the source file and section. If nothing relevant is found, it says it doesn't have that information. Numbers still come only from the numeric tools.
+
+**Guardrails:** a whitelist of allowed columns, input validation on borrower fields, a cap of 5 tool rounds per question, a per-session question limit, and a rule that the model may only state numbers returned by a tool.
 
 ## Limitations
 - Public dataset and a simple linear model, not a production credit model.
 - Grade G has only 60 loans, so its estimates are unreliable.
-- Missing interest rates were filled with the median before the train/test split, which is a minor form of leakage.
+- Missing interest rates were filled with the median before the train/test split, a minor form of leakage.
 - Scikit-learn coefficients are on standardized features, so they are not comparable to the raw-unit statsmodels coefficients.
+- Retrieval is keyword based (TF-IDF), so it can miss questions phrased with different words than the documents. The documents are short and written by me.
 - The copilot depends on a third-party API and may be slow or rate limited. The free host also sleeps when idle, so the first load can take a few seconds.
 
 ## Run Locally
@@ -61,11 +74,13 @@ Create `.streamlit/secrets.toml` with `GEMINI_API_KEY = "your-key"` to enable th
 
 ## Files
 - `credit_risk_analysis.ipynb`: full analysis (SQL, statsmodels, scikit-learn)
-- `app.py`, `tools.py`, `agent.py`: Streamlit app, analysis tools, agent loop
+- `app.py`, `tools.py`, `agent.py`: Streamlit app, analysis and search tools, agent loop
+- `docs/`: documentation indexed by the copilot
 - `model.pkl`, `scaler.pkl`, `columns.pkl`: saved model artifacts
 - `credit_risk.db`: cleaned SQLite database
 
 ## Next Steps
+- Measure retrieval quality (hit rate on a set of test questions) and compare TF-IDF with embeddings
 - Tune the decision threshold and try class weights or a tree-based model
-- Fit the imputer on training data only
+- Fit the imputer on training data only- Fit the imputer on training data only
 - Add confidence intervals for small segments
